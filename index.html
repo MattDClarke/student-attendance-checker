@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500&display=swap" rel="stylesheet">
+    <title>Student Attendance Checker</title>
+
+</head>
+
+<body>
+
+    <style>
+        body {
+            display: grid;
+            grid-template-columns: 48vw 48vw;
+            grid-template-rows: auto;
+            grid-template-areas: "input output";
+            display: grid;
+            padding: 1rem;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .input {
+            grid-area: input;
+        }
+
+        .input label {
+            display: block;
+        }
+
+        .attendance-form {
+            margin-top: 1rem;
+        }
+
+        .attendance-form label {
+            font-weight: 500;
+        }
+
+        select {
+            margin-bottom: 3.5rem;
+            padding: 0.25rem;
+        }
+
+        button {
+            color: white;
+            background: purple;
+            margin-top: 1rem;
+            padding: 1rem;
+            border: 0;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+
+        button:hover {
+            cursor: pointer;
+            background: rgb(161, 0, 161);
+            box-shadow: 2px 3px 2px 1px rgba(0, 0, 0, 0.3);
+            transition: all 0.5s;
+
+        }
+
+        h1 {
+            margin-top: 0.5rem;
+        }
+
+        ul {
+            padding: 0 1rem;
+        }
+
+        ul,
+        .color-key,
+        .total {
+            padding-bottom: 1rem;
+            border-bottom: 1px solid gray;
+        }
+
+        .attendance-output {
+            grid-area: output;
+        }
+
+        .present {
+            color: green;
+        }
+
+        .absent {
+            color: red;
+        }
+
+        .oddNums {
+            color: rgb(206, 65, 0);
+        }
+
+        .total {
+            font-weight: bold;
+        }
+    </style>
+
+    <div class="input">
+        <h1>Student Attendance Checker</h1>
+        <form class="attendance-form">
+            <label for="course">Select a course:</label>
+            <select id="course" name="course"></select>
+            <textarea name="attendanceList" rows="30" cols="80" placeholder="Paste student attendance from Zoom"
+                required></textarea>
+            <button type="submit" class="attendance-form-button">Check attendance</button>
+        </form>
+    </div>
+
+    <div class="attendance-output" id="output"></div>
+
+    <script type="text/javascript" src="./studentNumbers.js"></script>
+    <script type="text/javascript">
+        const attendanceForm = document.querySelector('.attendance-form');
+        const courseInput = document.querySelector('select[name="course"]');
+        const attendanceListInput = document.querySelector(
+            'textarea[name="attendanceList"]'
+        );
+        const output = document.querySelector('#output');
+
+        function generateCourseOptions(coursesArr) {
+            return coursesArr.map(course => `<option>${course}</option>`).join('');
+        }
+
+        function generateOutput(courseStudentNumbersList, inputStudentNumbersList) {
+            return courseStudentNumbersList
+                .map(
+                    num =>
+                        `<li class="${inputStudentNumbersList.includes(num) ? 'present' : 'absent'
+                        }">
+                            ${num}
+                        </li>`
+                )
+                .join('');
+        }
+
+        function diffBtnArrays(arr1, arr2) {
+            const temp = [];
+            for (const i in arr1) {
+                if (!arr2.includes(arr1[i])) {
+                    temp.push(arr1[i]);
+                }
+            }
+            return temp;
+        }
+
+        function generateOddNumsOutput(oddNumbersList) {
+            return oddNumbersList.map(num => `<li>${num}</li>`).join('');
+        }
+
+        function findStudentNums(courseName, attendanceListRaw) {
+            // all student numbers for chosen class
+            const courseStudentNumbersListRaw = allStudentNumbers[courseName];
+            // regex to find student numbers in text area input
+            const studentNumRegex = /\d{9}/g;
+            // array of student numbers (students who attended a particular zoom meeting)
+            const inputStudentNumbersListRaw = attendanceListRaw.match(studentNumRegex);
+
+            // remove duplicates from arrays
+            const courseStudentNumbersListSet = new Set(courseStudentNumbersListRaw);
+            const courseStudentNumbersList = [...courseStudentNumbersListSet];
+            const inputStudentNumbersListSet = new Set(inputStudentNumbersListRaw);
+            const inputStudentNumbersList = [...inputStudentNumbersListSet];
+
+            const outputList = generateOutput(
+                courseStudentNumbersList,
+                inputStudentNumbersList
+            );
+
+            // find any odd student numbers - maybe input incorrectly
+            // find string of numbers -> 5+ digits with a string of chars
+            const oddNumRegex = /[0-9a-zA-Z]*\d{5,}[0-9a-zA-Z]*/g;
+            const inputStudentNumbersListOddRaw = attendanceListRaw.match(oddNumRegex);
+            // make a set and then convert to array again to remove any duplicates
+            const courseStudentNumbersListOddSet = new Set(inputStudentNumbersListOddRaw);
+            const courseStudentNumbersListOdd = [...courseStudentNumbersListOddSet];
+
+            // exclude any student numbers in inputStudentNumbersList
+            const oddNumbersList = diffBtnArrays(
+                courseStudentNumbersListOdd,
+                inputStudentNumbersList
+            );
+
+            // output strings for displaying results
+            const colorKey =
+                "<div class='color-key'><div class='present'>Green = present</div><div class='absent'>Red = absent</div></div>";
+            const totalStudents = `<div>Total students attended: ${inputStudentNumbersList.length
+                }</div > <div>Total students in class: ${courseStudentNumbersList.length
+                }</div>`;
+
+            output.innerHTML = `<h2>${courseName}</h2>
+                ${colorKey}
+                <ul class="output-list">${outputList}</ul>
+                <div class="oddNums">
+                    Numbers to double check: 
+                    <ul>
+                        ${generateOddNumsOutput(oddNumbersList)}
+                    </ul>
+                </div>
+                <div class='total'>
+                    ${totalStudents}
+                </div>`;
+        }
+
+        courseInput.innerHTML = generateCourseOptions(Object.keys(allStudentNumbers));
+
+        attendanceForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const courseName = courseInput.options[courseInput.selectedIndex].innerText;
+            const attendanceListRaw = attendanceListInput.value;
+            findStudentNums(courseName, attendanceListRaw);
+        });
+    </script>
+
+</body>
+
+</html>
